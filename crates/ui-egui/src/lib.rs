@@ -6,6 +6,8 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ai;
 pub mod animtimeline;
 pub mod backstage;
 pub mod canvas;
@@ -515,6 +517,10 @@ pub struct SlideApp {
     next_file_id: u64,
     /// Picks and drops whose bytes have not arrived yet.
     pending_files: Vec<PendingFile>,
+    /// AI through publik API or the person's own key (desktop only). `None` until the shell
+    /// installs it, and in test sessions, where no setup dialog may appear unasked.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub ai: Option<ai::Ai>,
 }
 
 fn grid_options_touched(p: &Value) -> bool {
@@ -583,6 +589,8 @@ impl SlideApp {
             twisting: false,
             next_file_id: 1,
             pending_files: Vec::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            ai: None,
         }
     }
 
@@ -1857,6 +1865,9 @@ impl SlideApp {
         });
         toast::note_missing_fonts(self);
         toast::show(self, &ctx);
+        // AI answers, a generated picture waiting for its slide, and the first-launch setup dialog.
+        #[cfg(not(target_arch = "wasm32"))]
+        ai::frame(self);
         dialogs::show(self, &ctx);
         menus::palette(self, &ctx);
         for url in std::mem::take(&mut self.pending_urls) {

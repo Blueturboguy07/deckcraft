@@ -1308,6 +1308,17 @@ fn insert(app: &mut SlideApp, ui: &mut Ui) {
         big(app, ui, Icon::Video, "Video", "app.insertVideoDialog", json!({}));
         big(app, ui, Icon::Audio, "Audio", "app.insertAudioDialog", json!({}));
     });
+    // AI through publik API or the person's own key (desktop only). Each tool opens a dialog;
+    // nothing is sent until a click there. One menu keeps the group narrow: the Insert tab
+    // already fills most of a 1440-point window.
+    #[cfg(not(target_arch = "wasm32"))]
+    group(ui, |ui| {
+        let r = big_button(ui, Icon::DesignIdeas, "AI", true).on_hover_text("AI tools: Slide Text and Generate Image");
+        egui::Popup::menu(&r).show(|ui| {
+            menu_item(app, ui, Icon::TextBox, "Slide Text…", "app.dialog", json!({"id": crate::ai::SLIDE_TEXT}));
+            menu_item(app, ui, Icon::Picture, "Generate Image…", "app.dialog", json!({"id": crate::ai::IMAGE}));
+        });
+    });
 }
 
 /// Hover-to-size table grid. Returns (rows, cols) when clicked.

@@ -68,6 +68,19 @@ fn config_dir() -> Option<std::path::PathBuf> {
     }
 }
 
+/// What publik needs to know about this build. The app token is public by design (it can only
+/// mint capped keys attributed to DeckCraft) and lives at the repo root so source builds carry it.
+fn app_info() -> deckcraft_ui_egui::ai::AppInfo {
+    deckcraft_ui_egui::ai::AppInfo {
+        slug: "deckcraft",
+        name: "DeckCraft",
+        version: env!("CARGO_PKG_VERSION"),
+        app_token: include_str!("../../../publik-app-token.txt"),
+        dialects: &["chat_completions", "images"],
+        config_dir: config_dir(),
+    }
+}
+
 fn load_prefs(app: &mut SlideApp) {
     if std::env::var_os("DECKCRAFT_NO_PREFS").is_some() {
         return;
@@ -185,6 +198,12 @@ fn main() -> eframe::Result {
             }
             Startup::Run { control_port, files, sample, show } => (control_port, files, sample, show),
         };
+    // Builder check (publikhq.com/skills/setup.md): the built app provisions publik API for real
+    // and prints one line. The builder who runs it is the consent.
+    if std::env::var_os("PUBLIK_SELF_TEST").is_some() {
+        println!("{}", deckcraft_ui_egui::ai::self_test(&app_info()));
+        return Ok(());
+    }
     log::info!("DeckCraft {} ({} {})", env!("CARGO_PKG_VERSION"), std::env::consts::OS, std::env::consts::ARCH);
     // The log file lives under the settings directory; opened after the arguments, so `--help` and
     // `--version` leave no file behind. Records logged until now are written to it first.
@@ -240,6 +259,11 @@ fn main() -> eframe::Result {
         Box::new(move |cc| {
             let mut app = SlideApp::new(Session::new(), services());
             load_prefs(&mut app);
+            // AI through publik API or the person's own key; the first launch asks. Not in runs
+            // without preferences (agents' and UI test runs), where no dialog may appear unasked.
+            if std::env::var_os("DECKCRAFT_NO_PREFS").is_none() {
+                app.ai = Some(deckcraft_ui_egui::ai::Ai::new(app_info()));
+            }
             // AutoRecover: reopen what a previous run left unsaved, then keep it current.
             if std::env::var_os("DECKCRAFT_NO_RECOVERY").is_none() {
                 app.session.recovery_dir = deckcraft_engine::recovery::default_dir();

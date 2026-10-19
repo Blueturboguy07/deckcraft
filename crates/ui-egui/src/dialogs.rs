@@ -71,6 +71,9 @@ fn title(id: &str) -> &'static str {
         "quit" => "DeckCraft",
         "themeColors" => "Create New Theme Colors",
         "themeFonts" => "Create New Theme Fonts",
+        "aiSetup" => "AI",
+        "aiSlideText" => "Slide Text",
+        "aiImage" => "Generate Image",
         _ => "DeckCraft",
     }
 }
@@ -96,6 +99,7 @@ pub fn show(app: &mut SlideApp, ctx: &egui::Context) {
         ui.set_min_width(match d.id.as_str() {
             "themeColors" => 700.0,
             "themeFonts" => 400.0,
+            "aiSetup" | "aiSlideText" | "aiImage" => 460.0,
             _ => 340.0,
         });
         if d.id == "themeColors" {
@@ -2189,6 +2193,19 @@ fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
                 ui.label("Your name (comments):");
                 ui.text_edit_singleline(&mut app.session.prefs.author);
             });
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                ui.add_space(6.0);
+                ui.label(egui::RichText::new("AI").font(theme::bold(13.0)));
+                if crate::ai::options_section(app, ui) {
+                    // Set up AI… or Change…: the setup flow takes this dialog's place and returns
+                    // here when it closes, so Cancel still puts back what Preferences opened with.
+                    let back = std::mem::take(&mut d.params);
+                    *d = Dialog::new(crate::ai::SETUP);
+                    d.params = json!({"returnId": "preferences", "returnParams": back});
+                    return false;
+                }
+            }
             let (ok, cancel) = buttons(ui, "Done");
             if cancel {
                 restore_preferences(app, d);
@@ -2199,12 +2216,30 @@ fn body(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         "themeColors" => theme_colors_dialog(app, ui, d),
         "themeFonts" => theme_fonts_dialog(app, ui, d),
         "dateTime" => date_time_dialog(app, ui, d),
+        "aiSetup" | "aiSlideText" | "aiImage" => ai_dialog(app, ui, d),
         _ => {
             ui.label(format!("“{}” is not available yet.", d.id));
             let (ok, cancel) = buttons(ui, "OK");
             ok || cancel
         }
     }
+}
+
+/// The AI setup flow and the Insert tab's AI tools (`ai.rs`, desktop only).
+#[cfg(not(target_arch = "wasm32"))]
+fn ai_dialog(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
+    match d.id.as_str() {
+        crate::ai::SETUP => crate::ai::setup_dialog(app, ui),
+        crate::ai::SLIDE_TEXT => crate::ai::slide_text_dialog(app, ui, d),
+        _ => crate::ai::image_dialog(app, ui, d),
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn ai_dialog(_app: &mut SlideApp, ui: &mut Ui, _d: &mut Dialog) -> bool {
+    ui.label("AI tools are available in the desktop app.");
+    let (ok, cancel) = buttons(ui, "OK");
+    ok || cancel
 }
 
 fn num_text(v: f64) -> String {
