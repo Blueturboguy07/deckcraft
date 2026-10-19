@@ -830,6 +830,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-publik"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "crc32fast"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1165,6 +1174,7 @@ dependencies = [
 name = "deckcraft-ui-egui"
 version = "0.8.0"
 dependencies = [
+ "craft-publik",
  "deckcraft-anim",
  "deckcraft-color",
  "deckcraft-engine",
