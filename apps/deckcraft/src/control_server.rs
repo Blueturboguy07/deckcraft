@@ -317,10 +317,16 @@ mod tests {
         for junk in [&b"hello\n"[..], b"[1,2]\n", b"{\"id\":1}\n", b"{\"method\":5}\n", b"\xff\xfe\n", b"GET /x HTTP/1.1\n"] {
             let (mut r, mut w) = client(addr);
             w.write_all(junk).unwrap();
-            w.write_all(b"{\"id\":2,\"method\":\"m\"}\n").unwrap();
-            let replies = replies_until_closed(&mut r);
-            assert_eq!(replies.len(), 1, "{replies:?}");
-            assert_eq!(replies[0]["ok"], false);
+            // The reply is read before the next request goes out. The server closes as
+            // soon as it has answered, and a close with unread input resets the
+            // connection, which can drop that reply on the floor: with both lines sent
+            // up front this test failed now and then.
+            let first = reply(&mut r);
+            let _ = w.write_all(b"{\"id\":2,\"method\":\"m\"}\n");
+            let rest = replies_until_closed(&mut r);
+            assert!(rest.is_empty(), "{rest:?}");
+            let first = first.expect("one reply before the server closes");
+            assert_eq!(first["ok"], false);
         }
         assert!(is_http_request_line("OPTIONS * HTTP/1.1"));
         assert!(is_http_request_line("PRI * HTTP/2.0"));
