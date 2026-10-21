@@ -14,7 +14,7 @@ section: editors
 priority: optional
 maintainer: ${DECKCRAFT_MAINTAINER}
 vendor: Learning Machines LLC
-homepage: https://getartcraft.com/apps/deckcraft
+homepage: https://publikhq.com/deckcraft
 license: MIT OR Apache-2.0
 description: |-
   Open-source, native presentation app that works the way PowerPoint users

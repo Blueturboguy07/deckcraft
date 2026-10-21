@@ -23,10 +23,10 @@
   <launchable type="desktop-id">ai.storyteller.deckcraft.desktop</launchable>
   <icon type="stock">ai.storyteller.deckcraft</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://getartcraft.com/apps/deckcraft</url>
-  <url type="bugtracker">https://github.com/storytold/deckcraft/issues</url>
-  <url type="help">https://github.com/storytold/deckcraft</url>
-  <url type="contact">https://discord.gg/artcraft</url>
+  <url type="homepage">https://publikhq.com/deckcraft</url>
+  <url type="bugtracker">https://github.com/Blueturboguy07/deckcraft/issues</url>
+  <url type="help">https://github.com/Blueturboguy07/deckcraft</url>
+  <url type="contact">https://publikhq.com/deckcraft</url>
   <categories>
     <category>Office</category>
     <category>Presentation</category>
