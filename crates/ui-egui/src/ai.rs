@@ -35,6 +35,14 @@ const MAX_BULLETS: usize = 8;
 /// The picture shapes the image line offers, as (`size` parameter, label). Wide fits a 16:9 slide.
 const IMAGE_SIZES: [(&str, &str); 3] = [("1536x1024", "Wide"), ("1024x1024", "Square"), ("1024x1536", "Tall")];
 
+/// Index of Square in [`IMAGE_SIZES`]: the one shape publik API draws (1024x1024).
+const SQUARE: usize = 1;
+
+/// Whether a provider can draw shape `i`: publik API draws Square only; a person's own key has all three.
+fn offers(publik: bool, i: usize) -> bool {
+    !publik || i == SQUARE
+}
+
 /// The name a generated picture gets (also its alt text until the person changes it).
 const IMAGE_NAME: &str = "Generated image.png";
 
@@ -515,9 +523,15 @@ pub fn image_dialog(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
             .hint_text("A watercolor of a lighthouse at dawn"),
     );
     ui.add_space(4.0);
+    if !offers(provider.is_publik(), ai.image_size) {
+        ai.image_size = SQUARE;
+    }
     ui.horizontal(|ui| {
         ui.label("Shape:");
         for (i, (_, label)) in IMAGE_SIZES.iter().enumerate() {
+            if !offers(provider.is_publik(), i) {
+                continue;
+            }
             ui.add_enabled_ui(!ai.image.busy(), |ui| ui.radio_value(&mut ai.image_size, i, *label));
         }
     });
@@ -560,7 +574,7 @@ pub fn image_dialog(app: &mut SlideApp, ui: &mut Ui, d: &mut Dialog) -> bool {
         ai.image.error = None;
         ai.image_note = None;
         let prompt = ai.image.prompt.trim().to_string();
-        let size = IMAGE_SIZES.get(ai.image_size).map_or("1024x1024", |s| s.0);
+        let size = if provider.is_publik() { IMAGE_SIZES[SQUARE].0 } else { IMAGE_SIZES.get(ai.image_size).map_or("1024x1024", |s| s.0) };
         ai.image.rx = Some(spawn(&ctx, move || client::image_generate(&provider, &prompt, size)));
     }
     if place {
@@ -745,5 +759,19 @@ mod tests {
         let ai = app.ai.as_ref().unwrap();
         assert!(ai.image_bytes.is_some() && ai.image.error.is_some(), "kept for another try");
         assert_eq!(shapes(&app), before + 1);
+    }
+}
+
+#[cfg(test)]
+mod publik_shape_tests {
+    use super::{offers, IMAGE_SIZES, SQUARE};
+
+    #[test]
+    fn publik_api_offers_square_only() {
+        assert_eq!(IMAGE_SIZES[SQUARE].0, "1024x1024");
+        assert!(offers(true, SQUARE));
+        assert!(!offers(true, 0));
+        assert!(!offers(true, 2));
+        assert!((0..IMAGE_SIZES.len()).all(|i| offers(false, i)));
     }
 }
