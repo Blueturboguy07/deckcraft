@@ -11,6 +11,8 @@ default-run = "deckcraft"
 workspace = true
 
 [dependencies]
+# publik's usage counts (src/publik_telemetry.rs): the HTTP client that file needs.
+ureq = "2"
 deckcraft-engine = { workspace = true }
 deckcraft-ui-egui = { workspace = true }
 deckcraft-media = { workspace = true }
