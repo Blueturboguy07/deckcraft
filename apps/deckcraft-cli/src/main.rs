@@ -24,7 +24,19 @@ macro_rules! outln {
     }};
 }
 
+// publik's usage counts. The file is publik's reference client, kept as it is.
+#[rustfmt::skip]
+mod publik_telemetry;
+
+/// The version in publik's usage counts: the release tag without its `v`, for example `0.9.0-publik.5`.
+/// The build number comes from `packaging/PUBLIK_BUILD`, the file the bundle version comes from.
+fn publik_version() -> String {
+    format!("{}-publik.{}", env!("CARGO_PKG_VERSION"), include_str!("../../../packaging/PUBLIK_BUILD").trim())
+}
+
 fn main() -> ExitCode {
+    // publik's usage counts (README: Usage counts). A detached copy of this tool sends them, so the tool never waits.
+    publik_telemetry::start_cli("deckcraft", &publik_version());
     let args: Vec<String> = std::env::args().skip(1).collect();
     let rest = args.get(1..).unwrap_or(&[]);
     let asks_help = rest.iter().any(|a| a == "--help" || a == "-h");

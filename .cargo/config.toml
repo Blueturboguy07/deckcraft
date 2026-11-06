@@ -1,6 +1,8 @@
 # Local development builds embed the craft-fonts checkout next to this repo when it exists
 # (build.rs warns and continues without it). CI and releases set CRAFT_FONTS_DIR explicitly.
 [env]
+# `cargo test` and `cargo run` start the tools many times: they send no publik usage counts.
+DO_NOT_TRACK = "1"
 CRAFT_FONTS_DIR = { value = "../craft-fonts", relative = true }
 
 [alias]
