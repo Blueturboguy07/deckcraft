@@ -12,12 +12,16 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # publik: upstream's "credits" job (storytold's refresh-contributors.yml) is left out. publik's
+  # trimmed shared workflow has no contributors-artifact input; every build bundles the committed
+  # contributors/contributors.json.
   release:
     # publik's trimmed copy of storytold/craft-common-actions (free macOS runner, Windows x64 only,
     # Linux and Flatpak off). Tracked at @main like upstream.
@@ -25,7 +29,10 @@ jobs:
     with:
       app-name: deckcraft
       app-title: DeckCraft
-      craft-fonts-ref: 43913056ce82a3fdad0ef69f6b88d1dc922a8104
+      # Keep identical to ci.yml and freebsd.yml. The shared release workflow sets
+      # CRAFT_FONTS_REQUIRED=1 in its packaging steps, so a pin without the reviewed Chinese
+      # manifest fails the release instead of silently skipping it.
+      craft-fonts-ref: 37827adc41fd165f9a9234ac40f94dbad353aa69
       version: ${{ inputs.version }}
       # publik has no Windows certificate yet: the x64 build ships unsigned and says so.
       windows-signing-required: false
@@ -44,3 +51,4 @@ jobs:
       AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
       AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
       AZURE_CERT_PROFILE: ${{ secrets.AZURE_CERT_PROFILE }}
+      LINUX_SIGNING_KEY: ${{ secrets.LINUX_SIGNING_KEY }}

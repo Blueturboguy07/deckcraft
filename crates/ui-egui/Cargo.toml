@@ -18,20 +18,25 @@ deckcraft-render = { workspace = true }
 deckcraft-anim = { workspace = true }
 deckcraft-engine = { workspace = true }
 deckcraft-media = { workspace = true }
-egui = { workspace = true }
+egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }
+egui_extras = { workspace = true }
+craft-ui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
+web-time = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+craft-update = { workspace = true }
 # publik API as the zero-setup AI option (or the person's own key): provisioning, the
 # credential file, the calls, and the setup flow. Desktop only: it talks to the network.
-craft-publik = { git = "https://github.com/Blueturboguy07/craft-publik", rev = "854bdf66e4d97cb19546fdb0ed0e258a20510f0d", features = ["egui"] }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-js-sys = "0.3"
+# Pinned to 7926858 (egui 0.36 or 0.37): upstream moved to egui 0.37.
+craft-publik = { git = "https://github.com/Blueturboguy07/craft-publik", rev = "7926858db80b68c988d6c325b5d287cbe74fc831", features = ["egui"] }
 
 [dev-dependencies]
+skrifa = { workspace = true }
+# kittest's own dev-dependencies do not propagate; tests need both font features explicitly.
+egui = { workspace = true, features = ["default_fonts", "monochrome_emoji_fonts"] }
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot"] }
 
 [build-dependencies]
