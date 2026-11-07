@@ -23,6 +23,9 @@ jobs:
   # trimmed shared workflow has no contributors-artifact input; every build bundles the committed
   # contributors/contributors.json.
   release:
+    # publik builds and uploads its releases itself (tags v*-publik.N). A run for a publik ref
+    # could upload files into such a release, so it skips them.
+    if: ${{ !contains(github.ref, '-publik') }}
     # publik's trimmed copy of storytold/craft-common-actions (free macOS runner, Windows x64 only,
     # Linux and Flatpak off). Tracked at @main like upstream.
     uses: Blueturboguy07/craft-common-actions/.github/workflows/release.yml@main
