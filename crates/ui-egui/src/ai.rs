@@ -160,7 +160,8 @@ pub fn frame(app: &mut SlideApp) {
     ai.frames = ai.frames.saturating_add(1);
     // The first launch asks once the publik gate passed and the window is up (a few frames in):
     // after "Use my own key" at the gate, the own-key form. "Later" ends that for good.
-    if !ai.first_run_checked && ai.frames > 3 && craft_publik::gate::passed() {
+    // Only once the gate passed (its worker sets that; unit tests have no gate).
+    if !ai.first_run_checked && ai.frames > 3 && (cfg!(test) || craft_publik::gate::passed()) {
         ai.first_run_checked = true;
         ai.state.reload_credential(); // the gate wrote it after this state was created
         if ai.state.wants_first_run() || ai.state.owes_first_card() {
@@ -743,7 +744,16 @@ mod tests {
                 .unwrap();
         let shapes = |app: &SlideApp| app.session.active().unwrap().current_slide().unwrap().shapes.len();
         let before = shapes(&app);
-        let mut ai = Ai::new(AppInfo { slug: "deckcraft", name: "DeckCraft", version: "0", app_token: "", dialects: &[], config_dir: None });
+        let mut ai = Ai::new(AppInfo {
+            slug: "deckcraft",
+            name: "DeckCraft",
+            version: "0",
+            app_token: "",
+            uses_ai: true,
+            endpoints: craft_publik::Endpoints::DEFAULT,
+            dialects: &[],
+            config_dir: None,
+        });
         let (tx, rx) = std::sync::mpsc::channel();
         tx.send(Ok(Reply { bytes: png, ..Default::default() })).unwrap();
         ai.image.rx = Some(rx);
