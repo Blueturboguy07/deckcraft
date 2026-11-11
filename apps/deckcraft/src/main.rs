@@ -25,15 +25,17 @@ mod graphics;
 mod logging;
 #[cfg(not(target_arch = "wasm32"))]
 mod pasteboard;
-// publik's usage counts (README: Usage counts). The file is publik's reference client, kept as it is.
-#[rustfmt::skip]
-mod publik_telemetry;
+// Sign in with publik, usage counting and the AI pay choice: this build's publik facts and the
+// gate every publik app opens with.
+mod publik;
 
 use deckcraft_engine::Session;
 use deckcraft_ui_egui::{Services, SlideApp};
 
 struct App(
     SlideApp,
+    /// Sign in with publik: drawn before anything of the app until it passes.
+    craft_publik::ui::Gate,
     /// Files opened from Finder and quit requests (see `apple_events`).
     #[cfg(target_os = "macos")]
     fmv_macos_events::Inbox,
@@ -42,7 +44,7 @@ struct App(
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         #[cfg(target_os = "macos")]
-        apple_events::poll(&self.1, &mut self.0, ctx);
+        apple_events::poll(&self.2, &mut self.0, ctx);
         self.0.logic(ctx);
     }
     /// Forward native raw input to the wrapped application once per pass.
@@ -50,6 +52,11 @@ impl eframe::App for App {
         self.0.raw_input_hook(ctx, raw);
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        // Sign in with publik comes first: the gate draws itself until the person is signed in
+        // (and, the first time, has chosen how the app pays for AI). Nothing of the app shows before.
+        if !self.1.ui(ui) {
+            return;
+        }
         self.0.ui(ui);
     }
     fn on_exit(&mut self) {
@@ -80,19 +87,6 @@ fn config_dir() -> Option<std::path::PathBuf> {
             .map(std::path::PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
             .map(|c| c.join("deckcraft"))
-    }
-}
-
-/// What publik needs to know about this build. The app token is public by design (it can only
-/// mint capped keys attributed to DeckCraft) and lives at the repo root so source builds carry it.
-fn app_info() -> deckcraft_ui_egui::ai::AppInfo {
-    deckcraft_ui_egui::ai::AppInfo {
-        slug: "deckcraft",
-        name: "DeckCraft",
-        version: env!("CARGO_PKG_VERSION"),
-        app_token: include_str!("../../../publik-app-token.txt"),
-        dialects: &["chat_completions", "images"],
-        config_dir: config_dir(),
     }
 }
 
@@ -213,12 +207,6 @@ fn app_icon() -> Option<egui::IconData> {
     eframe::icon_data::from_png_bytes(png).map_err(|e| log::warn!("app icon: {e}")).ok()
 }
 
-/// The version in publik's usage counts: the release tag without its `v`, for example `0.9.0-publik.4`.
-/// The build number comes from `packaging/PUBLIK_BUILD`, the file the bundle version comes from.
-fn publik_version() -> String {
-    format!("{}-publik.{}", env!("CARGO_PKG_VERSION"), include_str!("../../../packaging/PUBLIK_BUILD").trim())
-}
-
 /// Install logging, parse startup arguments and environment, launch the native app, and
 /// propagate an eframe startup failure.
 fn main() -> eframe::Result {
@@ -247,13 +235,13 @@ fn main() -> eframe::Result {
     // Builder check (publikhq.com/skills/setup.md): the built app provisions publik API for real
     // and prints one line. The builder who runs it is the consent.
     if std::env::var_os("PUBLIK_SELF_TEST").is_some() {
-        println!("{}", deckcraft_ui_egui::ai::self_test(&app_info()));
+        println!("{}", craft_publik::self_test(&publik::app_info()));
         return Ok(());
     }
     log::info!("DeckCraft {} ({} {})", env!("CARGO_PKG_VERSION"), std::env::consts::OS, std::env::consts::ARCH);
-    // publik's usage counts: `app_opened` now, `active_session` every 30 minutes, on a background
-    // thread. After the early exits above, so `--version` and the self-test send nothing.
-    publik_telemetry::start("deckcraft", &publik_version(), None);
+    // publik's usage counts (`app_opened` now, `active_session` every 30 minutes) start once the
+    // gate passed (`publik::app_info`, `craft_publik::ui::Gate`), so `--version` and the self-test
+    // send nothing.
     // The log file lives under the settings directory; opened after the arguments, so `--help` and
     // `--version` leave no file behind. Records logged until now are written to it first.
     if let Some(logger) = logger {
@@ -328,7 +316,7 @@ fn main() -> eframe::Result {
             // AI through publik API or the person's own key; the first launch asks. Not in runs
             // without preferences (agents' and UI test runs), where no dialog may appear unasked.
             if std::env::var_os("DECKCRAFT_NO_PREFS").is_none() {
-                app.ai = Some(deckcraft_ui_egui::ai::Ai::new(app_info()));
+                app.ai = Some(deckcraft_ui_egui::ai::Ai::new(publik::app_info()));
             }
             app.enable_update_checks();
             // AutoRecover: reopen what a previous run left unsaved, then keep it current.
@@ -357,6 +345,8 @@ fn main() -> eframe::Result {
             }
             Ok(Box::new(App(
                 app,
+                // Sign in with publik: provisioning starts now, on a worker thread; `ui` draws it.
+                craft_publik::ui::Gate::new(publik::app_info()),
                 #[cfg(target_os = "macos")]
                 apple_events.connect(&cc.egui_ctx),
             )))
@@ -375,6 +365,7 @@ mod tests {
         if std::env::var_os("DECKCRAFT_TEST_ON_EXIT").is_some() {
             let mut app = App(
                 SlideApp::new(Session::new(), Services::default()),
+                craft_publik::ui::Gate::for_test(publik::app_info()),
                 #[cfg(target_os = "macos")]
                 fmv_macos_events::Inbox::default(),
             );

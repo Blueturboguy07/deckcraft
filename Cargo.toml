@@ -4,7 +4,7 @@ members = ["crates/*", "apps/*", "xtask"]
 default-members = ["crates/*", "apps/deckcraft", "apps/deckcraft-cli"]
 
 [workspace.package]
-version = "0.16.0"
+version = "0.16.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
@@ -64,6 +64,10 @@ craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "c5a1cbfb5f
 # craft-update: app-specific pretend versions apply to startup and manual checks.
 craft-update = { git = "https://github.com/storytold/craft-libs", version = "=0.1.0", rev = "c5a1cbfb5f9049f9270955caffb5bee5997aebf7", features = ["egui"] }
 craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "c5a1cbfb5f9049f9270955caffb5bee5997aebf7", version = "=0.1.0" }
+# The publik module shared by the Craft apps (publikhq.com/sdk/publik.rs.md): Sign in with publik
+# (the gate), usage counting, and publik API or the person's own key. One pin for the whole
+# workspace; branch signin-gate. The crate accepts egui 0.36 and 0.37.
+craft-publik = { git = "https://github.com/Blueturboguy07/craft-publik", rev = "a342903b04a60063837814e0ac7cbb2ccba79614", features = ["egui"] }
 i_overlay = "9"
 quick-xml = "0.41"
 zip = { version = "3", default-features = false, features = ["deflate"] }

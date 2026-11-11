@@ -28,10 +28,10 @@ web-time = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 craft-update = { workspace = true }
-# publik API as the zero-setup AI option (or the person's own key): provisioning, the
-# credential file, the calls, and the setup flow. Desktop only: it talks to the network.
-# Pinned to 7926858 (egui 0.36 or 0.37): upstream moved to egui 0.37.
-craft-publik = { git = "https://github.com/Blueturboguy07/craft-publik", rev = "7926858db80b68c988d6c325b5d287cbe74fc831", features = ["egui"] }
+# The publik module (pinned in the root Cargo.toml): publik API as the zero-setup AI option (or
+# the person's own key), the credential file, the calls, and the setup flow. Desktop only: it
+# talks to the network.
+craft-publik = { workspace = true }
 
 [dev-dependencies]
 skrifa = { workspace = true }
